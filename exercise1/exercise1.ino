@@ -98,7 +98,7 @@ void motorTest() {
   int pwm_R = 0;
   int pwm_L = 0;
   
-  for(int i = 99; i > 0; i--) {
+  for(int i = 50; i > 0; i--) {
     // Direction control
     digitalWrite(Motor_R_dir_pin, Motor_return);  
     digitalWrite(Motor_L_dir_pin, Motor_return);
@@ -108,8 +108,7 @@ void motorTest() {
     delay(2000);
     
     // PWM control
-    pwm_R=0;
-    pwm_L=0; 
+  
     pwm_L = i;
     pwm_R = i;
     analogWrite(Motor_L_pwm_pin, pwm_L);
