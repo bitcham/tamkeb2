@@ -1,190 +1,72 @@
-#include <LiquidCrystal.h>
+#include <Arduino.h>
 
-#define Motor_forward         0
-#define Motor_return          1
-#define Motor_L_dir_pin       7
-#define Motor_R_dir_pin       8
-#define Motor_L_pwm_pin       9
-#define Motor_R_pwm_pin       10
+const uint8_t MOTOR_FORWARD = 0;   
+const uint8_t MOTOR_BACKWARD = 1; 
+const uint8_t MOTOR_L_DIR_PIN = 7;   // Left motor direction pin
+const uint8_t MOTOR_R_DIR_PIN = 8;   // Right motor direction pin
+const uint8_t MOTOR_L_PWM_PIN = 9;   // Left motor PWM pin
+const uint8_t MOTOR_R_PWM_PIN = 10;  // Right motor PWM pin
 
-const int LCD_RS = 53;
-const int LCD_E = 51;
-const int LCD_D4 = 35;
-const int LCD_D5 = 34;
-const int LCD_D6 = 33;
-const int LCD_D7 = 32;
 
-const int JOYSTICK_X = A8;  // X-axis analog pin
-const int JOYSTICK_Y = A9;  // Y-axis analog pin
-const int JOYSTICK_KEY = 19;  // Button digital pin
+const uint8_t PWM_MAX = 255;
+const uint8_t SPEED_30_PERCENT = (PWM_MAX * 30 + 50) / 100; // Rounded 30% duty cycle
+const uint8_t SPEED_75_PERCENT = (PWM_MAX * 75 + 50) / 100; // Rounded 75% duty cycle
 
-// Initialize LCD
-LiquidCrystal lcd(LCD_RS, LCD_E, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
+const unsigned long LEFT_FORWARD_DURATION_MS = 2000;   // 2 seconds forward on left wheel
+const unsigned long RIGHT_FORWARD_DURATION_MS = 10000; // 10 seconds forward on right wheel
+const unsigned long BACKWARD_DURATION_MS = 4000;       // 4 seconds backward on both wheels
 
-// Variables for joystick values
-int xValue = 0;
-int yValue = 0;
-int xPercent = 0;
-int yPercent = 0;
 
-// ISR variables
-volatile bool runMotorTest = false;
-volatile bool displayMode = false;  // false = analog data, true = button count
-volatile unsigned long buttonPressCount = 0;
-volatile unsigned long lastInterruptTime = 0;
-
-// ISR function for joystick button press
-void buttonISR() {
-  unsigned long interruptTime = millis();
-  
-  // Debounce: ignore interrupt if it occurs within 200ms of the last one
-  if (interruptTime - lastInterruptTime > 200) {
-    runMotorTest = true;        
-    buttonPressCount++;         
-    displayMode = !displayMode; 
-    lastInterruptTime = interruptTime;
-  }
-}
+void runMotorSequence();
+void setMotorDirection(uint8_t leftDirection, uint8_t rightDirection);
+void setMotorSpeeds(uint8_t leftSpeed, uint8_t rightSpeed);
+void stopMotors();
 
 void setup() {
-  Serial.begin(9600);
-  
-  // Initialize LCD (16 columns, 2 rows)
-  lcd.begin(16, 2);
-  lcd.clear();
 
-  // Configure joystick pins
-  pinMode(JOYSTICK_X, INPUT);
-  pinMode(JOYSTICK_Y, INPUT);
-  pinMode(JOYSTICK_KEY, INPUT_PULLUP);
-  
-  // Configure motor pins
-  pinMode(Motor_L_dir_pin, OUTPUT);
-  pinMode(Motor_R_dir_pin, OUTPUT);
-  pinMode(Motor_L_pwm_pin, OUTPUT);
-  pinMode(Motor_R_pwm_pin, OUTPUT);
-  
-  // Attach interrupt for joystick button (pin 2 = interrupt 0)
-  attachInterrupt(digitalPinToInterrupt(JOYSTICK_KEY), buttonISR, FALLING);
+  pinMode(MOTOR_L_DIR_PIN, OUTPUT);
+  pinMode(MOTOR_R_DIR_PIN, OUTPUT);
+  pinMode(MOTOR_L_PWM_PIN, OUTPUT);
+  pinMode(MOTOR_R_PWM_PIN, OUTPUT);
+
+  stopMotors();       
+  runMotorSequence(); 
+  stopMotors();        
 }
-
 void loop() {
-  // Read analog values from joystick (0-1023)
-  xValue = analogRead(JOYSTICK_X);
-  yValue = analogRead(JOYSTICK_Y);
-  
-  // Calculate percentages (0-100%)
-  xPercent = map(xValue, 0, 1023, 0, 100);
-  yPercent = map(yValue, 0, 1023, 0, 100);
-  
-  // Check if motor test should run
-  if (runMotorTest) {
-    runMotorTest = false;  // Reset flag
-    motorTest();           // Execute motor test
-  }
-  
-  
-  // Display on LCD
-  displayValues();
-  
-  // Send to Serial Monitor for debugging
-  printToSerial();
-  
-  // Small delay to prevent flickering
-  delay(500);
+
 }
 
-void motorTest() {
-  int pwm_R = 0;
-  int pwm_L = 0;
-  
-  for(int i = 50; i > 0; i--) {
-    // Direction control
-    digitalWrite(Motor_R_dir_pin, Motor_return);  
-    digitalWrite(Motor_L_dir_pin, Motor_return);
-    delay(2000);
-    digitalWrite(Motor_R_dir_pin, Motor_forward);  
-    digitalWrite(Motor_L_dir_pin, Motor_forward); 
-    delay(2000);
-    
-    // PWM control
-  
-    pwm_L = i;
-    pwm_R = i;
-    analogWrite(Motor_L_pwm_pin, pwm_L);
-    analogWrite(Motor_R_pwm_pin, pwm_R);
-  }
+void runMotorSequence() {
+  // Step 1: drive only the left wheel forward at about 30% speed for 2 seconds.
+  setMotorDirection(MOTOR_FORWARD, MOTOR_FORWARD);
+  setMotorSpeeds(SPEED_30_PERCENT, 0);
+  delay(LEFT_FORWARD_DURATION_MS);
+
+  // Step 2: drive only the right wheel forward at about 30% speed for 10 seconds.
+  setMotorDirection(MOTOR_FORWARD, MOTOR_FORWARD);
+  setMotorSpeeds(0, SPEED_30_PERCENT);
+  delay(RIGHT_FORWARD_DURATION_MS);
+
+  // Step 3: drive both wheels backward at about 75% speed for 4 seconds.
+  setMotorDirection(MOTOR_BACKWARD, MOTOR_BACKWARD);
+  setMotorSpeeds(SPEED_75_PERCENT, SPEED_75_PERCENT);
+  delay(BACKWARD_DURATION_MS);
 }
 
-void displayValues() {
-  lcd.clear();
-  
-  if (!displayMode) {
-    // Display analog data (Exercise 1 functionality)
-    lcd.setCursor(0, 0);
-    lcd.print("X:");
-    
-    // Print analog value with padding for alignment
-    if (xValue < 10) {
-      lcd.print("   ");
-    } else if (xValue < 100) {
-      lcd.print("  ");
-    } else if (xValue < 1000) {
-      lcd.print(" ");
-    }
-    lcd.print(xValue);   
-    
-    lcd.print("  ");
-    
-    // Print percentage with padding
-    if (xPercent < 10) {
-      lcd.print(" ");
-    }
-    lcd.print(xPercent);
-    lcd.print("%");
-    
-    // Line 2: Y values
-    lcd.setCursor(0, 1);
-    lcd.print("Y:");
-    
-    // Print analog value with padding for alignment
-    if (yValue < 10) {
-      lcd.print("   ");
-    } else if (yValue < 100) {
-      lcd.print("  ");
-    } else if (yValue < 1000) {
-      lcd.print(" ");
-    }
-    lcd.print(yValue);
-    
-    lcd.print("  ");
-    
-    // Print percentage with padding
-    if (yPercent < 10) {
-      lcd.print(" ");
-    }
-    lcd.print(yPercent);
-    lcd.print("%");
-  } else {
-    lcd.setCursor(0, 0);
-    lcd.print("Button Presses:");
-    lcd.setCursor(0, 1);
-    lcd.print("Count: ");
-    lcd.print(buttonPressCount);
-  }
+void setMotorDirection(uint8_t leftDirection, uint8_t rightDirection) {
+  // Write the desired direction levels to the motor driver input pins.
+  digitalWrite(MOTOR_L_DIR_PIN, leftDirection);
+  digitalWrite(MOTOR_R_DIR_PIN, rightDirection);
 }
 
-void printToSerial() {
-  Serial.print("X: ");
-  Serial.print(xValue);
-  Serial.print(" (");
-  Serial.print(xPercent);
-  Serial.print("%) | Y: ");
-  Serial.print(yValue);
-  Serial.print(" (");
-  Serial.print(yPercent);
-  Serial.print("%) | Mode: ");
-  Serial.print(displayMode ? "Button Count" : "Analog");
-  Serial.print(" | Count: ");
-  Serial.println(buttonPressCount);
+void setMotorSpeeds(uint8_t leftSpeed, uint8_t rightSpeed) {
+  // Apply PWM duty cycles to control the motor speeds.
+  analogWrite(MOTOR_L_PWM_PIN, leftSpeed);
+  analogWrite(MOTOR_R_PWM_PIN, rightSpeed);
+}
+
+void stopMotors() {
+  // Force both PWM channels to zero to hold the car stationary.
+  setMotorSpeeds(0, 0);
 }
