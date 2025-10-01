@@ -5,8 +5,8 @@
 #include <LiquidCrystal.h>
 
 // Motor control pins
-const uint8_t MOTOR_FORWARD = 1;
-const uint8_t MOTOR_BACKWARD = 0;
+const uint8_t MOTOR_FORWARD = 0;
+const uint8_t MOTOR_BACKWARD = 1;
 const uint8_t MOTOR_L_DIR_PIN = 7;
 const uint8_t MOTOR_R_DIR_PIN = 8;
 const uint8_t MOTOR_L_PWM_PIN = 9;
@@ -26,12 +26,12 @@ const int LCD_D6 = 33;
 const int LCD_D7 = 32;
 
 // Drive parameters
-const float TARGET_DISTANCE_CM = 15.0f;  // Set your desired distance here
+const float TARGET_DISTANCE_CM = 60.0f;  // Set your desired distance here
 const uint8_t DRIVE_SPEED_PERCENT = 35;   // Same speed as Exercise 4
 
 // From Exercise 4 measurements - adjust these values based on your actual measurements
 const float PULSES_PER_CM = 83.3f;  // Replace with your measured value from Exercise 4
-const float PULSES_PER_CM_L = 27.2f;
+const float PULSES_PER_CM_L = 84.0755f; //27.2 before gear down
 const unsigned long UPDATE_INTERVAL_MS = 100;  // LCD update interval
 
 // Encoder pulse counters

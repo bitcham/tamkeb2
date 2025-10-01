@@ -1,8 +1,8 @@
 // Exercise 4: drive forward for 4 seconds while counting encoder pulses with an ISR.
 #include <Arduino.h>
 
-const uint8_t MOTOR_FORWARD = 1;
-const uint8_t MOTOR_BACKWARD = 0;
+const uint8_t MOTOR_FORWARD = 0;
+const uint8_t MOTOR_BACKWARD = 1;
 const uint8_t MOTOR_L_DIR_PIN = 7;
 const uint8_t MOTOR_R_DIR_PIN = 8;
 const uint8_t MOTOR_L_PWM_PIN = 9;
@@ -16,7 +16,7 @@ const uint8_t DRIVE_SPEED_PERCENT = 35;     // Adjust to a speed that feels safe
 
 // Wheel diameter: 4.2cm, Circumference = π × 4.2 = 13.19cm
 const float WHEEL_CIRCUMFERENCE_CM = 13.19f;
-const float PULSES_PER_REV = 372.0f;  // Adjust based on your encoder
+const float PULSES_PER_REV = 1115.0f;  // Adjust based on your encoder 372 before gear down
 
 volatile unsigned long encoderPulses = 0;
 
