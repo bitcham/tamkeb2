@@ -26,7 +26,7 @@ const int LCD_D6 = 33;
 const int LCD_D7 = 32;
 
 // Drive parameters
-const float TARGET_DISTANCE_CM = 60.0f;  // Set your desired distance here
+const float TARGET_DISTANCE_CM = 15.0f;  // Set your desired distance here
 const uint8_t DRIVE_SPEED_PERCENT = 35;   // Same speed as Exercise 4
 
 // From Exercise 4 measurements - adjust these values based on your actual measurements
@@ -183,7 +183,7 @@ uint8_t percentToPwm(uint8_t percent) {
 }
 
 void updateLCD() {
-  float currentDistance = calculateDistance(encoderRightPulses);
+  float currentDistance = calculateDistance(encoderLeftPulses);
   
   lcd.clear();
   lcd.setCursor(0, 0);
