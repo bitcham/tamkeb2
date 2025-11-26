@@ -736,7 +736,7 @@ void executeESPCommand() {
 void updateLCD() {
   lcd.clear();
 
-  // Line 1: Mode and compass
+  // Line 0: Mode and compass
   lcd.setCursor(0, 0);
   lcd.print(espMode ? "ESP " : "JOY ");
 
@@ -749,18 +749,15 @@ void updateLCD() {
     lcd.print("NO CMP");
   }
 
-  // Line 2: Context-specific information
+  // Line 1: Context-specific information
   lcd.setCursor(0, 1);
 
   if (espMode) {
-    // ESP mode: Show last command and distance
+    // ESP mode: Show last command
     lcd.print("C:");
-    lcd.print(lastESPCommand.substring(0, 6));  // Truncate if needed
-    lcd.print(" ");
-    lcd.print((int)totalDistanceLeft);
-    lcd.print("cm");
+    lcd.print(lastESPCommand.substring(0, 18));  // Truncate if needed
   } else {
-    // Joystick mode: Show joystick values and pulses
+    // Joystick mode: Show joystick values
     int x = readJoystickX();
     int y = readJoystickY();
     lcd.print("X:");
@@ -768,6 +765,21 @@ void updateLCD() {
     lcd.print(" Y:");
     lcd.print(y);
   }
+
+  // Line 2: Pulse counts for both wheels
+  lcd.setCursor(0, 2);
+  lcd.print("P L:");
+  lcd.print(encoderLeftPulses);
+  lcd.print(" R:");
+  lcd.print(encoderRightPulses);
+
+  // Line 3: Distance traveled for both wheels
+  lcd.setCursor(0, 3);
+  lcd.print("D L:");
+  lcd.print((int)totalDistanceLeft);
+  lcd.print(" R:");
+  lcd.print((int)totalDistanceRight);
+  lcd.print("cm");
 }
 
 /**
