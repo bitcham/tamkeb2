@@ -4,7 +4,7 @@
  *
  * Features:
  * - Joystick control with variable speed and direction
- * - ESP webpage control via Serial (UART)
+ * - ESP webpage control via Serial1 (UART)
  * - Compass-based turning with calibration
  * - Encoder-based distance measurement
  * - Mode switching between Joystick and ESP mode
@@ -20,21 +20,21 @@
 // ============== PIN DEFINITIONS ==============
 
 // Motor control pins
-const uint8_t MOTOR_FORWARD = 0;
-const uint8_t MOTOR_BACKWARD = 1;
+const uint8_t MOTOR_FORWARD = 1;
+const uint8_t MOTOR_BACKWARD = 0;
 const uint8_t MOTOR_L_DIR_PIN = 7;
 const uint8_t MOTOR_R_DIR_PIN = 8;
 const uint8_t MOTOR_L_PWM_PIN = 9;
 const uint8_t MOTOR_R_PWM_PIN = 10;
 
 // Encoder pins (must support interrupts)
-const uint8_t ENCODER_R_PIN = 2;
+const uint8_t ENCODER_R_PIN = 5;
 const uint8_t ENCODER_L_PIN = 3;
 
 // Joystick pins
-const uint8_t JOYSTICK_X_PIN = A0;  // Left-Right axis
-const uint8_t JOYSTICK_Y_PIN = A1;  // Forward-Backward axis
-const uint8_t JOYSTICK_BUTTON_PIN = 18;  // Mode switch button (interrupt capable)
+const uint8_t JOYSTICK_X_PIN = A8;  // Left-Right axis
+const uint8_t JOYSTICK_Y_PIN = A9;  // Forward-Backward axis
+const uint8_t JOYSTICK_BUTTON_PIN = 2;  // Mode switch button (interrupt capable)
 
 // LCD pins
 const int LCD_RS = 53;
@@ -140,9 +140,10 @@ void modeButtonISR();
 // ============== SETUP ==============
 
 void setup() {
-  // Initialize Serial communication for ESP
-  Serial.begin(9600);
-  Serial.setTimeout(100);
+  // Initialize Serial1 communication for ESP
+  Serial1.begin(115200);
+  Serial.begin(115200);
+  Serial1.setTimeout(100);
 
   // Initialize I2C for compass
   Wire.begin();
@@ -164,7 +165,7 @@ void setup() {
   pinMode(JOYSTICK_BUTTON_PIN, INPUT_PULLUP);
 
   // Initialize LCD
-  lcd.begin(16, 2);
+  lcd.begin(20, 4);
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("Final Assignment");
@@ -184,8 +185,8 @@ void setup() {
     if (compassOffset < 0) compassOffset += 360.0f;
     if (compassOffset >= 360) compassOffset -= 360.0f;
 
-    Serial.print("Compass calibrated. Offset: ");
-    Serial.println(compassOffset);
+    Serial1.print("Compass calibrated. Offset: ");
+    Serial1.println(compassOffset);
   } else {
     // ERROR HANDLING: Compass connection failed
     compassConnected = false;
@@ -194,7 +195,7 @@ void setup() {
     lcd.print("COMPASS ERROR!");
     lcd.setCursor(0, 1);
     lcd.print("Joystick only");
-    Serial.println("ERROR: Compass not detected! Switching to Joystick mode only.");
+    Serial1.println("ERROR: Compass not detected! Switching to Joystick mode only.");
     espMode = false;  // Force joystick mode
     delay(2000);
   }
@@ -208,9 +209,9 @@ void setup() {
 
   // Initial display
   lcd.clear();
-  Serial.println("=== Final Assignment Ready ===");
-  Serial.println("Commands: dist:<cm>, deg:<angle>, north");
-  Serial.println("Press joystick button to switch modes");
+  Serial1.println("=== Final Assignment Ready ===");
+  Serial1.println("Commands: dist:<cm>, deg:<angle>, north");
+  Serial1.println("Press joystick button to switch modes");
 
   lastHeartbeatTime = millis();
 }
@@ -234,14 +235,14 @@ void loop() {
     } else {
       espMode = !espMode;
       motorStop();
-      Serial.print("Mode switched to: ");
-      Serial.println(espMode ? "ESP" : "Joystick");
+      Serial1.print("Mode switched to: ");
+      Serial1.println(espMode ? "ESP" : "Joystick");
     }
   }
 
   // Handle control based on current mode
   if (espMode) {
-    // ESP Mode: Read and execute commands from Serial
+    // ESP Mode: Read and execute commands from Serial1
     readESPCommands();
 
     if (hasNewCommand) {
@@ -440,10 +441,10 @@ void drive(float distanceCm, bool forward, uint8_t speed) {
 
   unsigned long targetPulses = (unsigned long)(abs(distanceCm) * PULSES_PER_CM);
 
-  Serial.print("Driving ");
-  Serial.print(distanceCm);
-  Serial.print("cm ");
-  Serial.println(forward ? "forward" : "backward");
+  Serial1.print("Driving ");
+  Serial1.print(distanceCm);
+  Serial1.print("cm ");
+  Serial1.println(forward ? "forward" : "backward");
 
   // Start driving
   if (forward) {
@@ -471,9 +472,9 @@ void drive(float distanceCm, bool forward, uint8_t speed) {
   totalDistanceLeft += actualDistance;
   totalDistanceRight += (encoderRightPulses - startRightPulses) / PULSES_PER_CM;
 
-  Serial.print("Drive complete. Actual: ");
-  Serial.print(actualDistance);
-  Serial.println("cm");
+  Serial1.print("Drive complete. Actual: ");
+  Serial1.print(actualDistance);
+  Serial1.println("cm");
 
   delay(200);
 }
@@ -492,9 +493,9 @@ void turn(float targetDegree, uint8_t speed) {
   while (targetDegree < 0) targetDegree += 360.0f;
   while (targetDegree >= 360) targetDegree -= 360.0f;
 
-  Serial.print("Turning to: ");
-  Serial.print(targetDegree);
-  Serial.println(" degrees");
+  Serial1.print("Turning to: ");
+  Serial1.print(targetDegree);
+  Serial1.println(" degrees");
 
   unsigned long startTime = millis();
   const unsigned long TURN_TIMEOUT = 10000;  // 10 second timeout
@@ -510,8 +511,8 @@ void turn(float targetDegree, uint8_t speed) {
     // Check if within tolerance
     if (abs(diff) <= HEADING_TOLERANCE) {
       motorStop();
-      Serial.print("Turn complete. Current heading: ");
-      Serial.println(currentHeading);
+      Serial1.print("Turn complete. Current heading: ");
+      Serial1.println(currentHeading);
       return;
     }
 
@@ -533,6 +534,10 @@ void turn(float targetDegree, uint8_t speed) {
 
   motorStop();
   Serial.println("Turn timeout!");
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Turn timeout");
+  delay(2000);
 }
 
 /**
@@ -540,7 +545,7 @@ void turn(float targetDegree, uint8_t speed) {
  * GUIDELINE 2: Find North button functionality
  */
 void findNorth() {
-  Serial.println("Finding North...");
+  Serial1.println("Finding North...");
   turn(0.0f, TURN_SPEED);
 }
 
@@ -643,12 +648,12 @@ void handleJoystickControl() {
 // ============== ESP COMMAND HANDLING ==============
 
 /**
- * Read and parse commands from ESP via Serial
+ * Read and parse commands from ESP via Serial1
  * Commands: dist:<cm>, deg:<angle>, north, ping
  */
 void readESPCommands() {
-  while (Serial.available() > 0) {
-    String command = Serial.readStringUntil('\n');
+  while (Serial1.available() > 0) {
+    String command = Serial1.readStringUntil('\n');
     command.trim();
 
     if (command.length() == 0) continue;
@@ -657,7 +662,7 @@ void readESPCommands() {
     if (command == "ping") {
       lastHeartbeatTime = millis();
       heartbeatEnabled = true;
-      Serial.println("pong");
+      Serial1.println("pong");
       continue;
     }
 
@@ -668,8 +673,8 @@ void readESPCommands() {
       commandType = "dist";
       hasNewCommand = true;
       lastESPCommand = command;
-      Serial.print("Received distance command: ");
-      Serial.println(targetDistance);
+      Serial1.print("Received distance command: ");
+      Serial1.println(targetDistance);
     }
     // Degree/heading command: deg:<angle>
     else if (command.startsWith("deg:")) {
@@ -683,19 +688,19 @@ void readESPCommands() {
       commandType = "deg";
       hasNewCommand = true;
       lastESPCommand = command;
-      Serial.print("Received heading command: ");
-      Serial.println(targetHeading);
+      Serial1.print("Received heading command: ");
+      Serial1.println(targetHeading);
     }
     // Find North command
     else if (command == "north") {
       commandType = "north";
       hasNewCommand = true;
       lastESPCommand = "north";
-      Serial.println("Received Find North command");
+      Serial1.println("Received Find North command");
     }
     else {
-      Serial.print("Unknown command: ");
-      Serial.println(command);
+      Serial1.print("Unknown command: ");
+      Serial1.println(command);
     }
   }
 }
@@ -704,6 +709,7 @@ void readESPCommands() {
  * Execute the pending ESP command
  */
 void executeESPCommand() {
+  detachInterrupt(digitalPinToInterrupt(JOYSTICK_BUTTON_PIN));
   if (commandType == "dist") {
     bool forward = (targetDistance >= 0);
     drive(abs(targetDistance), forward, DRIVE_SPEED);
@@ -715,6 +721,9 @@ void executeESPCommand() {
     findNorth();
   }
 
+  delay(100);
+  modeButtonPressed = false;
+  attachInterrupt(digitalPinToInterrupt(JOYSTICK_BUTTON_PIN), modeButtonISR, FALLING);
   commandType = "";
 }
 
@@ -758,8 +767,6 @@ void updateLCD() {
     lcd.print(x);
     lcd.print(" Y:");
     lcd.print(y);
-    lcd.print(" ");
-    lcd.print((int)totalDistanceLeft);
   }
 }
 
@@ -799,5 +806,6 @@ void modeButtonISR() {
   if (currentTime - lastButtonTime > DEBOUNCE_DELAY) {
     modeButtonPressed = true;
     lastButtonTime = currentTime;
+    Serial.println("BUTTON INTERRUPT");
   }
 }
