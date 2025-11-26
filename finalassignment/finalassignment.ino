@@ -53,6 +53,7 @@ const float PULSES_PER_CM = 84.0755f;
 const uint8_t DRIVE_SPEED = 35;
 const int JOYSTICK_CENTER = 512;
 const int JOYSTICK_DEADZONE = 50;
+const float PULSES_PER_CM_R_CALI = 2.16f;
 
 // ============== GLOBAL VARIABLES ==============
 
@@ -138,7 +139,7 @@ void setup() {
   pinMode(JOYSTICK_X_PIN, INPUT);
   pinMode(JOYSTICK_Y_PIN, INPUT);
 
-  // NEW MODE BUTTON
+  // External Push Button
   pinMode(MODE_BUTTON_PIN, INPUT_PULLUP);
 
   lcd.begin(20, 4);
@@ -184,7 +185,7 @@ void setup() {
 
 void loop() {
 
-  // ========== NEW BUTTON HANDLING ==========
+  // ========== External Push Button ==========
   bool reading = digitalRead(MODE_BUTTON_PIN);
   
   if (reading != lastButtonState) {
@@ -539,7 +540,7 @@ void updateLCD() {
   lcd.print("D L:");
   lcd.print((int)encoderLeftPulses / PULSES_PER_CM);
   lcd.print(" R:");
-  lcd.print((int)encoderRightPulses / PULSES_PER_CM * 2.16);
+  lcd.print((int)encoderRightPulses / PULSES_PER_CM * PULSES_PER_CM_R_CALI);
   lcd.print("cm");
 }
 
